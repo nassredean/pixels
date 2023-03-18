@@ -65,3 +65,20 @@ fn main() {
 fn pixel_to_hex(pixel: &Rgb<u8>) -> String {
     format!("#{:02X}{:02X}{:02X}", pixel[0], pixel[1], pixel[2])
 }
+
+fn hex_codes_distance(hex1: &str, hex2: &str) -> f64 {
+    let (r1, g1, b1) = hex_to_rgb(hex1);
+    let (r2, g2, b2) = hex_to_rgb(hex2);
+
+    let r_diff = r1 as f64 - r2 as f64;
+    let g_diff = g1 as f64 - g2 as f64;
+    let b_diff = b1 as f64 - b2 as f64;
+
+    ((r_diff * r_diff) + (g_diff * g_diff) + (b_diff * b_diff)).sqrt()
+}
+
+fn hex_to_rgb(hex: &str) -> (u8, u8, u8) {
+    u32::from_str_radix(&hex[1..], 16)
+        .map(|rgb| ((rgb >> 16) as u8, (rgb >> 8 & 0xFF) as u8, (rgb & 0xFF) as u8))
+        .unwrap_or((0, 0, 0))
+}
