@@ -5,6 +5,7 @@ extern crate rand;
 use std::collections::HashMap;
 use std::env;
 use std::path::Path;
+use rand::Rng;
 use image::{io::Reader as ImageReader, Rgb};
 use ndarray::{Array, Array1, array};
 use rand::seq::SliceRandom;
@@ -74,6 +75,7 @@ fn main() {
         })
         .collect();
 
+    // Clusters is a collection of color clusters, with each cluster containing a set of colors
     let clusters = k_means(&colors, num_buckets);
 
     // Print the clustered colors
@@ -106,11 +108,9 @@ fn print_colored_hex(hex_color: &str) {
 fn rgb_to_hex(r: u8, g: u8, b: u8) -> String {
     format!("#{:02X}{:02X}{:02X}", r, g, b)
 }
-
 fn k_means(colors: &[Array1<f64>], num_buckets: usize) -> Vec<Vec<Array1<f64>>> {
-    // Randomly select initial centroids
-    let mut rng = rand::thread_rng();
-    let mut centroids: Vec<Array1<f64>> = colors.choose_multiple(&mut rng, num_buckets).cloned().collect();
+    // Select initial centroids using k-means++ algorithm
+    let mut centroids: Vec<Array1<f64>> = k_means_plus_plus(colors, num_buckets);
 
     let mut cluster_assignments = vec![0; colors.len()];
     let mut prev_assignments = vec![usize::MAX; colors.len()];
@@ -144,6 +144,45 @@ fn k_means(colors: &[Array1<f64>], num_buckets: usize) -> Vec<Vec<Array1<f64>>> 
     }
 
     clusters
+}
+
+fn k_means_plus_plus(colors: &[Array1<f64>], num_buckets: usize) -> Vec<Array1<f64>> {
+    let mut rng = rand::thread_rng();
+    let mut centroids = Vec::with_capacity(num_buckets);
+
+    // Choose the first centroid uniformly at random from the colors
+    let first_centroid = colors.choose(&mut rng).unwrap().clone();
+    centroids.push(first_centroid);
+
+    // Choose the remaining centroids
+    for _ in 1..num_buckets {
+        let distances: Vec<f64> = colors
+            .iter()
+            .map(|color| {
+                centroids
+                    .iter()
+                    .map(|centroid| (centroid - color).dot(&(centroid - color)))
+                    .min_by(|a, b| a.partial_cmp(b).unwrap())
+                    .unwrap()
+            })
+            .collect();
+
+        let total_distance: f64 = distances.iter().sum();
+        let mut target_distance: f64 = rng.gen_range(0.0..total_distance);
+        let mut next_centroid_index = 0;
+
+        for (i, distance) in distances.iter().enumerate() {
+            target_distance -= *distance;
+            if target_distance <= 0.0 {
+                next_centroid_index = i;
+                break;
+            }
+        }
+
+        centroids.push(colors[next_centroid_index].clone());
+    }
+
+    centroids
 }
 
 fn calculate_centroids(
