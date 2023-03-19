@@ -80,9 +80,11 @@ fn main() {
     for (i, cluster) in clusters.iter().enumerate() {
         println!("Cluster {}:", i + 1);
         for color in cluster {
-            let hex_color = format!("#{:02X}{:02X}{:02X}", color[0] as u8, color[1] as u8, color[2] as u8);
-            println!("  {}", hex_color);
+            let hex_color = rgb_to_hex(color[0] as u8, color[1] as u8, color[2] as u8);
+
+            print_colored_hex(&hex_color);
         }
+        println!(); // Add a newline after each cluster
     }
 }
 
@@ -94,6 +96,15 @@ fn hex_to_rgb(hex: &str) -> (u8, u8, u8) {
     u32::from_str_radix(&hex[1..], 16)
         .map(|rgb| ((rgb >> 16) as u8, (rgb >> 8 & 0xFF) as u8, (rgb & 0xFF) as u8))
         .unwrap_or((0, 0, 0))
+}
+
+fn print_colored_hex(hex_color: &str) {
+    let (r, g, b) = hex_to_rgb(hex_color);
+    print!("\x1b[38;2;{};{};{}m{}\x1b[0m ", r, g, b, hex_color);
+}
+
+fn rgb_to_hex(r: u8, g: u8, b: u8) -> String {
+    format!("#{:02X}{:02X}{:02X}", r, g, b)
 }
 
 fn k_means(colors: &[Array1<f64>], num_buckets: usize) -> Vec<Vec<Array1<f64>>> {
@@ -153,13 +164,4 @@ fn calculate_centroids(
     }
 
     new_centroids
-}
-
-fn rgb_to_hex(color: &Array1<f64>) -> String {
-    format!(
-        "#{:02X}{:02X}{:02X}",
-        color[0] as u8,
-        color[1] as u8,
-        color[2] as u8
-    )
 }
